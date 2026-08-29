@@ -37,21 +37,23 @@
   }
 
   /* ── page layout ── */
-  /*
-   * PC(1200px以上)では 3カラム構成:
-   *   [左サイドバー広告] [メインコンテンツ] [右サイドバー広告]
-   * タブレット以下では サイドバーを非表示にして1カラム。
-   */
   .page-inner {
-    display: flex; flex-direction: column; align-items: center;
+    /* align-items: center を外す。
+       Flex の align-items: center は交差軸（幅方向）を内容サイズに収縮させるため
+       .main-layout が width: 100% を持っていても潰れる原因になる。
+       align-items を指定しないことで stretch（デフォルト）が効き、幅が正しく伸びる。 */
+    display: flex;
+    flex-direction: column;
     padding: 32px 16px 60px;
   }
 
-  /* ツール+コンテンツを囲む3カラムコンテナ */
+  /* ── 3カラムグリッドコンテナ ── */
   .main-layout {
-    width: 100%; max-width: 1280px;
+    width: 100%;
+    max-width: 1280px;
+    margin: 0 auto;           /* 幅が max-width 未満の画面で中央寄せ */
     display: grid;
-    grid-template-columns: 1fr;          /* デフォルト: 1カラム */
+    grid-template-columns: 1fr;
     grid-template-areas: "main";
     gap: 0;
     align-items: start;
@@ -60,7 +62,7 @@
   /* PC幅でサイドバーを展開 */
   @media (min-width: 1200px) {
     .main-layout {
-      grid-template-columns: 180px 1fr 180px;
+      grid-template-columns: 160px minmax(0, 1fr) 160px;
       grid-template-areas: "sidebar-l main sidebar-r";
       gap: 0 24px;
     }
@@ -68,15 +70,18 @@
 
   @media (min-width: 1400px) {
     .main-layout {
-      grid-template-columns: 220px 1fr 220px;
+      grid-template-columns: 200px minmax(0, 1fr) 200px;
     }
   }
 
-  /* メインエリア（ツール + 解説コンテンツを縦に並べる） */
+  /* メインエリア */
   .main-area {
     grid-area: main;
-    display: flex; flex-direction: column; align-items: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     width: 100%;
+    min-width: 0;   /* Grid セル内での shrink を防ぐ（これがないと 1fr が縮む） */
   }
 
   .tool-wrap    { width: 100%; max-width: 580px; }
