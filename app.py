@@ -102,22 +102,6 @@ def cleanup_expired():
 threading.Thread(target=cleanup_expired, daemon=True).start()
 
 
-def _purge_temp_dirs():
-    """
-    起動時にアップロード・出力ディレクトリの残留ファイルをすべて削除する。
-    Render では再デプロイ後も同じコンテナが再利用される場合があり、
-    前回の処理ファイルが残ってストレージを圧迫するのを防ぐ。
-    """
-    for d in (UPLOAD_DIR, OUTPUT_DIR):
-        if not os.path.isdir(d):
-            continue
-        for fname in os.listdir(d):
-            _safe_remove(os.path.join(d, fname))
-
-
-_purge_temp_dirs()
-
-
 def _safe_remove(path: str):
     if path and os.path.exists(path):
         try:
@@ -146,6 +130,22 @@ def save_uploaded_video(file):
 def cleanup_paths(*paths):
     for path in paths:
         _safe_remove(path)
+
+
+def _purge_temp_dirs():
+    """
+    起動時にアップロード・出力ディレクトリの残留ファイルをすべて削除する。
+    Render では再デプロイ後も同じコンテナが再利用される場合があり、
+    前回の処理ファイルが残ってストレージを圧迫するのを防ぐ。
+    """
+    for d in (UPLOAD_DIR, OUTPUT_DIR):
+        if not os.path.isdir(d):
+            continue
+        for fname in os.listdir(d):
+            _safe_remove(os.path.join(d, fname))
+
+
+_purge_temp_dirs()
 
 
 def run_cmd(cmd, error_label):
