@@ -249,6 +249,38 @@
     color: var(--accent-hv); text-align: center;
   }
 
+  /* ── 画質モード選択（3択トグル） ── */
+  .quality-mode-grid {
+    display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-top: 0;
+  }
+  .qm-btn {
+    border: 1.5px solid var(--border); background: var(--card);
+    border-radius: 10px; padding: 10px 6px;
+    font-family: inherit; font-size: 12.5px; font-weight: 700;
+    color: var(--text); cursor: pointer; transition: all .12s; text-align: center;
+    line-height: 1.3;
+  }
+  .qm-btn .qm-sub { display: block; font-size: 10px; font-weight: 500; color: var(--text-sub); margin-top: 3px; }
+  .qm-btn:hover   { border-color: var(--accent); }
+  .qm-btn.active  { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-hv); }
+  .qm-btn.active .qm-sub { color: var(--accent-hv); }
+
+  /* speed モードは警告色 */
+  .qm-btn[data-qm="speed"].active   { border-color: var(--warn); background: var(--warn-soft); color: var(--warn); }
+  .qm-btn[data-qm="speed"].active .qm-sub { color: var(--warn); }
+
+  /* quality モードは成功色 */
+  .qm-btn[data-qm="quality"].active { border-color: var(--success); background: var(--success-soft); color: var(--success); }
+  .qm-btn[data-qm="quality"].active .qm-sub { color: var(--success); }
+
+  /* ── エンコードヒント表示 ── */
+  .encode-hint {
+    margin-top: 8px; padding: 8px 12px;
+    background: var(--bg); border-radius: 8px;
+    font-size: 12px; color: var(--text-sub); font-weight: 600;
+    min-height: 30px; transition: opacity .2s;
+  }
+
   /* ── result card ── */
   .result-card {
     display: none; margin-top: 18px;
@@ -506,6 +538,23 @@
           <button type="button" class="option-btn" data-value="720">720p <span class="option-btn-sub">HD・容量削減推奨</span></button>
           <button type="button" class="option-btn" data-value="480">480p <span class="option-btn-sub">SD・大幅軽量化</span></button>
         </div>
+
+        <div class="section-label">画質モード</div>
+        <div class="quality-mode-grid">
+          <button type="button" class="qm-btn" data-qm="speed">
+            ⚡ 速度優先
+            <span class="qm-sub">超高速・軽量<br>ノイズ出やすい</span>
+          </button>
+          <button type="button" class="qm-btn active" data-qm="balanced">
+            ⚖️ バランス
+            <span class="qm-sub">推奨・標準設定<br>速度と画質を両立</span>
+          </button>
+          <button type="button" class="qm-btn" data-qm="quality">
+            🎬 画質優先
+            <span class="qm-sub">低ビットレートで<br>自動リサイズ</span>
+          </button>
+        </div>
+        <div class="encode-hint" id="encodeHint">目標サイズとファイルを選択するとエンコード設定が表示されます</div>
       </div>
 
       <!-- panel: 音声抽出 -->
@@ -1054,7 +1103,7 @@ const cmpSlider = createSlider({
   slider: document.getElementById('cmpRangeSlider'), fill: document.getElementById('cmpRangeFill'),
   startThumb: document.getElementById('cmpStartThumb'), endThumb: document.getElementById('cmpEndThumb'),
   readout: document.getElementById('cmpRangeReadout'),
-}, (s,e,t,isStart) => { seekVideo(cmpPreviewVid, isStart?s:e, t); updateActionButton(); });
+}, (s,e,t,isStart) => { seekVideo(cmpPreviewVid, isStart?s:e, t); updateActionButton(); updateEncodeHint(); });
 
 async function initCompressPreview(file) {
   if (cmpObjectUrl) { URL.revokeObjectURL(cmpObjectUrl); cmpObjectUrl=null; }
@@ -1158,9 +1207,10 @@ document.querySelectorAll('#compressSizeOptions .option-btn').forEach(btn => {
     compressCustomWrap.classList.toggle('show', selectedTargetValue==='custom');
     if (selectedTargetValue==='custom') compressCustomInput.focus();
     updateActionButton();
+    updateEncodeHint();
   });
 });
-compressCustomInput.addEventListener('input', updateActionButton);
+compressCustomInput.addEventListener('input', () => { updateActionButton(); updateEncodeHint(); });
 
 function getTargetMB() {
   if (selectedTargetValue==='custom') { const v=parseFloat(compressCustomInput.value); return (!isNaN(v)&&v>0)?v:null; }
@@ -1172,8 +1222,37 @@ document.querySelectorAll('#resolutionOptions .option-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('#resolutionOptions .option-btn').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active'); selectedResolution=btn.dataset.value;
+    updateEncodeHint();
   });
 });
+
+// ── 画質モード選択 ──
+let selectedQualityMode = 'balanced';
+const encodeHintEl = document.getElementById('encodeHint');
+
+document.querySelectorAll('.qm-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.qm-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedQualityMode = btn.dataset.qm;
+    updateEncodeHint();
+  });
+});
+
+/** エンコードヒント（推定ビットレート・解像度）を更新する */
+function updateEncodeHint() {
+  const targetMB = getTargetMB();
+  const dur      = cmpUseSlider
+    ? Math.max(0.1, cmpSlider.getEnd() - cmpSlider.getStart())
+    : (cmpTotalSec > 0 ? cmpTotalSec : 0);
+
+  if (!targetMB || dur <= 0 || typeof window.getEncodeHint !== 'function') {
+    if (encodeHintEl) encodeHintEl.textContent = '目標サイズとファイルを選択するとエンコード設定が表示されます';
+    return;
+  }
+  const hint = window.getEncodeHint(targetMB, dur, selectedResolution, selectedQualityMode);
+  if (encodeHintEl) encodeHintEl.textContent = hint || '—';
+}
 
 // ============================================================
 // 音声抽出
@@ -1359,9 +1438,13 @@ async function runCompress() {
     const result = await _compressor.compress(selectedFile, {
       targetMB:     getTargetMB(),
       resolution:   selectedResolution,
+      qualityMode:  selectedQualityMode,
       trimStart:    trimStart,
       trimDuration: trimDuration,
-      onProgress:   ({ ratio, phase }) => updateProgress(ratio, phase),
+      onProgress:   ({ ratio, phase, info }) => {
+        updateProgress(ratio, phase);
+        if (info && poSub) poSub.textContent = info;
+      },
     });
 
     stopElapsedTimer();
