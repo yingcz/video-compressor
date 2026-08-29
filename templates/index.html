@@ -234,6 +234,21 @@
   .processing-overlay .po-title { font-weight: 700; font-size: 15px; color: var(--accent-hv); margin-bottom: 6px; }
   .processing-overlay .po-sub   { font-size: 13px; color: var(--text-sub); }
 
+  /* ── プログレスバー（FFmpeg.wasm 進捗表示） ── */
+  .progress-wrap { margin-top: 14px; }
+  .progress-bar-bg {
+    background: rgba(79,109,245,.15); border-radius: 999px;
+    height: 8px; overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%; width: 0%; background: var(--accent);
+    border-radius: 999px; transition: width .3s ease;
+  }
+  .progress-label {
+    margin-top: 6px; font-size: 12px; font-weight: 700;
+    color: var(--accent-hv); text-align: center;
+  }
+
   /* ── result card ── */
   .result-card {
     display: none; margin-top: 18px;
@@ -552,11 +567,18 @@
         <span id="actionBtnLabel">動画を選択してください</span>
       </button>
 
-      <!-- 処理中オーバーレイ -->
+      <!-- 処理中オーバーレイ（FFmpeg.wasm 進捗バー付き） -->
       <div class="processing-overlay" id="processingOverlay">
-        <div class="po-spinner"></div>
+        <div class="po-spinner" id="poSpinner"></div>
         <div class="po-title" id="poTitle">処理中...</div>
         <div class="po-sub"   id="poSub">しばらくお待ちください</div>
+        <!-- プログレスバー（compress タブのみ使用） -->
+        <div class="progress-wrap" id="progressWrap" style="display:none;">
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" id="progressFill"></div>
+          </div>
+          <div class="progress-label" id="progressLabel">0%</div>
+        </div>
       </div>
 
       <!-- ★ 広告枠①：処理中ローディングの直下（メイン広告） -->
@@ -604,7 +626,7 @@
     </div><!-- /.card -->
 
     <p style="text-align:center;margin-top:18px;font-size:12px;color:var(--text-sub);">
-      アップロードされたファイルは処理完了後、10分以内にサーバーから自動削除されます。
+      動画圧縮はお使いの端末上で処理されます。音声抽出・GIF変換・無音化はサーバー経由で処理され、完了後10分以内に自動削除されます。
     </p>
   </div><!-- /.tool-wrap -->
 
@@ -808,6 +830,7 @@
 
 </div><!-- /.page-inner -->
 
+<script src="/static/js/ffmpeg-compress.js" defer></script>
 <script>
 'use strict';
 
@@ -831,8 +854,12 @@ const fileRemove        = document.getElementById('fileRemove');
 const actionBtn         = document.getElementById('actionBtn');
 const actionBtnLabel    = document.getElementById('actionBtnLabel');
 const processingOverlay = document.getElementById('processingOverlay');
+const poSpinner         = document.getElementById('poSpinner');
 const poTitle           = document.getElementById('poTitle');
 const poSub             = document.getElementById('poSub');
+const progressWrap      = document.getElementById('progressWrap');
+const progressFill      = document.getElementById('progressFill');
+const progressLabel     = document.getElementById('progressLabel');
 const errorBox          = document.getElementById('errorBox');
 const errorMsg          = document.getElementById('errorMsg');
 const resultCard        = document.getElementById('resultCard');
@@ -848,8 +875,17 @@ const rcResetBtn        = document.getElementById('rcResetBtn');
 let selectedFile     = null;
 let originalFileSize = 0;
 let elapsedTimer     = null;
-let currentResultId  = null;
 let currentTab       = 'compress';
+
+// 圧縮結果（wasm 経由）
+let _resultBlob      = null;
+let _resultFilename  = '';
+// 音声抽出・GIF・無音化の結果（サーバー経由）
+let _serverResultId  = null;
+let _serverResultDlName = '';
+
+// FFmpeg.wasm インスタンス（1回ロードして使い回す）
+let _compressor = null;
 
 // ============================================================
 // ユーティリティ
@@ -891,6 +927,8 @@ function clearSelectedFile() {
   filePicked.classList.remove('show');
   dropzone.style.display = 'block';
   resetCompressPreview(); resetGifPreview(); hideAll();
+  _resultBlob = null; _resultFilename = '';
+  _serverResultId = null; _serverResultDlName = '';
   updateActionButton();
 }
 
@@ -1149,96 +1187,118 @@ document.querySelectorAll('#audioBitrateOptions .option-btn').forEach(btn => {
 });
 
 // ============================================================
-// タブ設定
+// updateActionButton
 // ============================================================
-const TAB_CONFIG = {
-  compress: {
-    endpoint: '/compress', idleLabel: '圧縮を開始',
-    loadingTitle: '圧縮中...', loadingSub: '2passエンコード処理中です。しばらくお待ちください',
-    buildFormData(fd) {
-      fd.append('target_mb', getTargetMB()); fd.append('resolution', selectedResolution);
-      if (cmpUseSlider) {
-        const s=cmpSlider.getStart(), e=cmpSlider.getEnd(), t=cmpSlider.getTotal();
-        if (!(s<=0.01&&e>=t-0.01)) { fd.append('trim_start',s.toFixed(2)); fd.append('trim_duration',(e-s).toFixed(2)); }
-      }
-    },
-    isValid: () => !!getTargetMB(),
-  },
-  audio: {
-    endpoint: '/extract-audio', idleLabel: '音声を抽出',
-    loadingTitle: '音声を抽出中...', loadingSub: 'MP3ファイルを書き出しています。しばらくお待ちください',
-    buildFormData: fd => fd.append('bitrate', selectedBitrate),
-    isValid: () => true,
-  },
-  gif: {
-    endpoint: '/to-gif', idleLabel: 'GIFに変換',
-    loadingTitle: 'GIFを生成中...', loadingSub: 'パレット生成・フレーム書き出し中です。しばらくお待ちください',
-    buildFormData(fd) {
-      fd.append('quality', selectedGifQuality);
-      if (gifUseSlider) { fd.append('start',gifSlider.getStart().toFixed(2)); fd.append('duration',(gifSlider.getEnd()-gifSlider.getStart()).toFixed(2)); }
-      else { fd.append('start',gifStartInput.value||'0'); fd.append('duration',gifDurationInput.value||'5'); }
-    },
-    isValid() {
-      if (gifUseSlider) return gifTotalSec>0&&(gifSlider.getEnd()-gifSlider.getStart())>=SLIDER_MIN_SPAN;
-      const s=parseFloat(gifStartInput.value), d=parseFloat(gifDurationInput.value);
-      return !isNaN(s)&&s>=0&&!isNaN(d)&&d>0;
-    },
-  },
-  mute: {
-    endpoint: '/mute', idleLabel: '無音化する',
-    loadingTitle: '無音化処理中...', loadingSub: '音声トラックを除去しています。しばらくお待ちください',
-    buildFormData: () => {}, isValid: () => true,
-  },
-};
-
 function updateActionButton() {
-  const cfg=TAB_CONFIG[currentTab], ready=selectedFile&&cfg.isValid();
-  actionBtn.disabled=!ready;
-  actionBtnLabel.textContent=selectedFile?cfg.idleLabel:'動画を選択してください';
+  let ready = !!selectedFile;
+  let label = '動画を選択してください';
+  if (selectedFile) {
+    switch (currentTab) {
+      case 'compress': ready = !!getTargetMB(); label = ready ? '圧縮を開始（ブラウザ処理）' : 'サイズを選択してください'; break;
+      case 'audio':    label = '音声を抽出'; break;
+      case 'gif':
+        if (gifUseSlider) { ready = gifTotalSec>0 && (gifSlider.getEnd()-gifSlider.getStart())>=SLIDER_MIN_SPAN; }
+        else { const s=parseFloat(gifStartInput.value),d=parseFloat(gifDurationInput.value); ready=!isNaN(s)&&s>=0&&!isNaN(d)&&d>0; }
+        label = 'GIFに変換';
+        break;
+      case 'mute': label = '無音化する'; break;
+    }
+  }
+  actionBtn.disabled = !ready;
+  actionBtnLabel.textContent = label;
 }
 
 // ============================================================
-// 結果カード表示
+// プログレスバー更新
 // ============================================================
-function showResultCard(data) {
-  currentResultId=data.result_id;
-  rcPreview.innerHTML='';
-  const previewUrl=`/preview/${data.result_id}`;
-  if (data.preview_type==='video') {
-    const vid=document.createElement('video');
-    vid.src=previewUrl; vid.controls=true;
-    vid.style.cssText='display:block;width:100%;max-height:280px;object-fit:contain;background:#0B0C10;';
+function updateProgress(ratio, phase) {
+  const pct = Math.round(Math.min(ratio * 100, 99));  // 100%はダウンロード時に表示
+  progressFill.style.width = `${pct}%`;
+  if (phase === 'loading') {
+    progressLabel.textContent = `FFmpeg読み込み中... ${pct}%`;
+  } else {
+    progressLabel.textContent = `エンコード中... ${pct}%`;
+  }
+}
+
+// ============================================================
+// 結果カード表示（wasm ブラウザ処理版）
+// ============================================================
+function showResultCardBlob(blob, originalSize, resultSize, filename) {
+  _resultBlob     = blob;
+  _resultFilename = filename;
+
+  rcPreview.innerHTML = '';
+  const blobUrl = URL.createObjectURL(blob);
+  const vid = document.createElement('video');
+  vid.src = blobUrl; vid.controls = true;
+  vid.style.cssText = 'display:block;width:100%;max-height:280px;object-fit:contain;background:#0B0C10;';
+  rcPreview.appendChild(vid);
+
+  _renderRcStats(originalSize, resultSize, filename);
+  resultCard.classList.add('show');
+
+  progressFill.style.width = '100%';
+  progressLabel.textContent = '完了！';
+}
+
+// 結果カード表示（サーバー処理版）
+function showResultCardServer(data) {
+  _serverResultId     = data.result_id;
+  _serverResultDlName = data.filename;
+
+  rcPreview.innerHTML = '';
+  const previewUrl = `/preview/${data.result_id}`;
+  if (data.preview_type === 'video') {
+    const vid = document.createElement('video');
+    vid.src = previewUrl; vid.controls = true;
+    vid.style.cssText = 'display:block;width:100%;max-height:280px;object-fit:contain;background:#0B0C10;';
     rcPreview.appendChild(vid);
-  } else if (data.preview_type==='image') {
-    const img=document.createElement('img');
-    img.src=previewUrl;
-    img.style.cssText='display:block;width:100%;max-height:280px;object-fit:contain;';
+  } else if (data.preview_type === 'image') {
+    const img = document.createElement('img');
+    img.src = previewUrl;
+    img.style.cssText = 'display:block;width:100%;max-height:280px;object-fit:contain;';
     rcPreview.appendChild(img);
-  } else if (data.preview_type==='audio') {
-    const aud=document.createElement('audio');
-    aud.src=previewUrl; aud.controls=true;
+  } else if (data.preview_type === 'audio') {
+    const aud = document.createElement('audio');
+    aud.src = previewUrl; aud.controls = true;
     rcPreview.appendChild(aud);
   }
-  const orig=data.original_size, result=data.result_size;
-  const ratio=orig>0?((orig-result)/orig)*100:0, increase=result>orig;
-  rcStats.innerHTML=`
+  _renderRcStats(data.original_size, data.result_size, data.filename);
+  resultCard.classList.add('show');
+}
+
+function _renderRcStats(orig, result, filename) {
+  const ratio = orig > 0 ? ((orig - result) / orig) * 100 : 0;
+  const increase = result > orig;
+  rcStats.innerHTML = `
     <span class="rc-size-orig">${fmtSize(orig)}</span>
     <span class="rc-arrow">→</span>
     <span class="rc-size-new">${fmtSize(result)}</span>
     <span class="rc-badge ${increase?'increase':''}">
-      ${increase?`+${Math.abs(ratio).toFixed(0)}% 増加`:`${ratio.toFixed(0)}% 削減！`}
+      ${increase ? `+${Math.abs(ratio).toFixed(0)}% 増加` : `${ratio.toFixed(0)}% 削減！`}
     </span>
   `;
-  rcFilename.textContent=`出力ファイル: ${data.filename}`;
-  resultCard.classList.add('show');
+  rcFilename.textContent = `出力ファイル: ${filename}`;
 }
 
+// ダウンロードボタン（wasm / サーバー 両対応）
 rcDlBtn.addEventListener('click', () => {
-  if (!currentResultId) return;
-  const a=document.createElement('a');
-  a.href=`/result/${currentResultId}`; a.download='';
-  document.body.appendChild(a); a.click(); a.remove();
+  if (_resultBlob) {
+    // wasm 圧縮結果: Blob URL からダウンロード
+    const url = URL.createObjectURL(_resultBlob);
+    const a = document.createElement('a');
+    a.href = url; a.download = _resultFilename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  } else if (_serverResultId) {
+    // サーバー処理結果
+    const a = document.createElement('a');
+    a.href = `/result/${_serverResultId}`; a.download = '';
+    document.body.appendChild(a); a.click(); a.remove();
+  }
 });
+
 rcResetBtn.addEventListener('click', clearSelectedFile);
 
 // ============================================================
@@ -1246,55 +1306,160 @@ rcResetBtn.addEventListener('click', clearSelectedFile);
 // ============================================================
 function showError(msg) {
   processingOverlay.classList.remove('show'); resultCard.classList.remove('show');
-  errorMsg.textContent=msg; errorBox.classList.add('show');
+  errorMsg.textContent = msg; errorBox.classList.add('show');
 }
 
 // ============================================================
 // タイマー
 // ============================================================
 function startElapsedTimer() {
-  let sec=0;
-  elapsedTimer=setInterval(()=>{
+  let sec = 0;
+  elapsedTimer = setInterval(() => {
     sec++;
-    const m=Math.floor(sec/60), s=sec%60;
-    poSub.textContent=`経過時間: ${m}:${String(s).padStart(2,'0')}`;
-  },1000);
+    const m = Math.floor(sec/60), s = sec%60;
+    poSub.textContent = `経過時間: ${m}:${String(s).padStart(2,'0')}`;
+  }, 1000);
 }
 function stopElapsedTimer() {
-  if (elapsedTimer){clearInterval(elapsedTimer);elapsedTimer=null;}
+  if (elapsedTimer) { clearInterval(elapsedTimer); elapsedTimer = null; }
 }
 
 // ============================================================
-// 実行ボタン
+// ── 圧縮実行（FFmpeg.wasm ブラウザ処理）──
 // ============================================================
-actionBtn.addEventListener('click', async () => {
-  const cfg=TAB_CONFIG[currentTab];
-  if (!selectedFile||!cfg.isValid()) return;
+async function runCompress() {
+  if (!selectedFile || !getTargetMB()) return;
 
-  actionBtn.disabled=true; actionBtn.classList.add('loading');
-  actionBtnLabel.textContent=cfg.loadingTitle;
+  actionBtn.disabled = true;
+  actionBtn.classList.add('loading');
+  actionBtnLabel.textContent = '圧縮中...';
   hideAll();
-  poTitle.textContent=cfg.loadingTitle; poSub.textContent=cfg.loadingSub;
+
+  // スピナーを隠してプログレスバーを表示
+  poSpinner.style.display = 'none';
+  progressWrap.style.display = 'block';
+  progressFill.style.width = '0%';
+  progressLabel.textContent = 'FFmpeg.wasm を読み込み中...';
+  poTitle.textContent = 'ブラウザで圧縮中...';
+  poSub.textContent   = 'お使いの端末で処理しています（サーバー不使用）';
   processingOverlay.classList.add('show');
   startElapsedTimer();
 
-  const fd=new FormData();
-  fd.append('video',selectedFile);
-  cfg.buildFormData(fd);
+  const trimStart    = cmpUseSlider ? cmpSlider.getStart() : 0;
+  const trimEnd      = cmpUseSlider ? cmpSlider.getEnd()   : 0;
+  const trimDuration = (cmpUseSlider && !(trimStart <= 0.01 && trimEnd >= cmpSlider.getTotal() - 0.01))
+    ? (trimEnd - trimStart) : 0;
 
   try {
-    const res=await fetch(cfg.endpoint,{method:'POST',body:fd});
-    const json=await res.json();
-    if (!res.ok) throw new Error(json.error||'処理に失敗しました。');
+    // BrowserVideoCompressor を初回だけインスタンス化
+    if (!_compressor) {
+      _compressor = new BrowserVideoCompressor();
+    }
+
+    const result = await _compressor.compress(selectedFile, {
+      targetMB:     getTargetMB(),
+      resolution:   selectedResolution,
+      trimStart:    trimStart,
+      trimDuration: trimDuration,
+      onProgress:   ({ ratio, phase }) => updateProgress(ratio, phase),
+    });
+
     stopElapsedTimer();
     processingOverlay.classList.remove('show');
-    showResultCard(json);
-  } catch(err) {
+    poSpinner.style.display = '';
+    showResultCardBlob(result.blob, result.originalSize, result.resultSize, result.filename);
+
+  } catch (err) {
+    stopElapsedTimer();
+    poSpinner.style.display = '';
+    progressWrap.style.display = 'none';
+    showError(err.message || '圧縮に失敗しました。');
+  } finally {
+    actionBtn.classList.remove('loading');
+    actionBtn.disabled = !(selectedFile && !!getTargetMB());
+    actionBtnLabel.textContent = selectedFile ? '圧縮を開始（ブラウザ処理）' : '動画を選択してください';
+  }
+}
+
+// ============================================================
+// ── サーバー処理（音声抽出 / GIF / 無音化）──
+// ============================================================
+async function runServerAction(endpoint, buildFormData, idleLabel, loadingTitle, loadingSub) {
+  if (!selectedFile) return;
+
+  actionBtn.disabled = true;
+  actionBtn.classList.add('loading');
+  actionBtnLabel.textContent = loadingTitle;
+  hideAll();
+
+  poSpinner.style.display = '';
+  progressWrap.style.display = 'none';
+  poTitle.textContent = loadingTitle;
+  poSub.textContent   = loadingSub;
+  processingOverlay.classList.add('show');
+  startElapsedTimer();
+
+  const fd = new FormData();
+  fd.append('video', selectedFile);
+  buildFormData(fd);
+
+  try {
+    const res  = await fetch(endpoint, { method: 'POST', body: fd });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || '処理に失敗しました。');
+    stopElapsedTimer();
+    processingOverlay.classList.remove('show');
+    showResultCardServer(json);
+  } catch (err) {
     stopElapsedTimer(); showError(err.message);
   } finally {
     actionBtn.classList.remove('loading');
-    actionBtn.disabled=!(selectedFile&&cfg.isValid());
-    actionBtnLabel.textContent=selectedFile?cfg.idleLabel:'動画を選択してください';
+    actionBtn.disabled = !selectedFile;
+    actionBtnLabel.textContent = selectedFile ? idleLabel : '動画を選択してください';
+  }
+}
+
+// ============================================================
+// 実行ボタン：タブごとに振り分け
+// ============================================================
+actionBtn.addEventListener('click', async () => {
+  switch (currentTab) {
+    case 'compress':
+      await runCompress();
+      break;
+
+    case 'audio':
+      await runServerAction(
+        '/extract-audio',
+        fd => fd.append('bitrate', selectedBitrate),
+        '音声を抽出', '音声を抽出中...', 'MP3ファイルを書き出しています。しばらくお待ちください'
+      );
+      break;
+
+    case 'gif':
+      await runServerAction(
+        '/to-gif',
+        fd => {
+          fd.append('quality', selectedGifQuality);
+          if (gifUseSlider) {
+            fd.append('start',    gifSlider.getStart().toFixed(2));
+            fd.append('duration', (gifSlider.getEnd()-gifSlider.getStart()).toFixed(2));
+          } else {
+            fd.append('start',    gifStartInput.value || '0');
+            fd.append('duration', gifDurationInput.value || '5');
+          }
+        },
+        'GIFに変換', 'GIFを生成中...', 'パレット生成・フレーム書き出し中です。しばらくお待ちください'
+      );
+      break;
+
+    case 'mute':
+      await runServerAction(
+        '/mute',
+        () => {},
+        '無音化する', '無音化処理中...', '音声トラックを除去しています。しばらくお待ちください'
+      );
+      break;
   }
 });
 
@@ -1308,16 +1473,15 @@ document.getElementById('current-year').textContent = new Date().getFullYear();
 // ============================================================
 document.querySelectorAll('.faq-q').forEach(btn => {
   btn.addEventListener('click', () => {
-    const item=btn.closest('.faq-item');
-    const isOpen=item.classList.contains('open');
-    // 他を閉じる
+    const item = btn.closest('.faq-item');
+    const isOpen = item.classList.contains('open');
     document.querySelectorAll('.faq-item.open').forEach(el => {
       el.classList.remove('open');
-      el.querySelector('.faq-q').setAttribute('aria-expanded','false');
+      el.querySelector('.faq-q').setAttribute('aria-expanded', 'false');
     });
     if (!isOpen) {
       item.classList.add('open');
-      btn.setAttribute('aria-expanded','true');
+      btn.setAttribute('aria-expanded', 'true');
     }
   });
 });
