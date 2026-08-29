@@ -60,10 +60,12 @@ ALLOWED_EXTENSIONS = {
 #                "size": int, "created_at": float } }
 _result_store: dict = {}
 _store_lock = threading.Lock()
-RESULT_TTL_SEC = 600  # 10分でクリーンアップ
+RESULT_TTL_SEC = 180  # 3分でクリーンアップ（Render 無料プランのストレージ節約）
 
 app = Flask(__name__)
-app.config["MAX_CONTENT_LENGTH"] = 2 * 1024 * 1024 * 1024  # 2GB
+# Render 無料プラン（メモリ 512MB）に合わせてアップロード上限を 512MB に設定。
+# それ以上の大きなファイルはアップロード段階で 413 エラーを返し OOM を防ぐ。
+app.config["MAX_CONTENT_LENGTH"] = 512 * 1024 * 1024  # 512MB
 
 
 # ---------------------------------------------------------------------------
@@ -98,6 +100,22 @@ def cleanup_expired():
 
 
 threading.Thread(target=cleanup_expired, daemon=True).start()
+
+
+def _purge_temp_dirs():
+    """
+    起動時にアップロード・出力ディレクトリの残留ファイルをすべて削除する。
+    Render では再デプロイ後も同じコンテナが再利用される場合があり、
+    前回の処理ファイルが残ってストレージを圧迫するのを防ぐ。
+    """
+    for d in (UPLOAD_DIR, OUTPUT_DIR):
+        if not os.path.isdir(d):
+            continue
+        for fname in os.listdir(d):
+            _safe_remove(os.path.join(d, fname))
+
+
+_purge_temp_dirs()
 
 
 def _safe_remove(path: str):
@@ -231,6 +249,8 @@ def run_ffmpeg_2pass(input_path: str, output_path: str,
         + ["-i", input_path]
         + vf_opts
         + ["-c:v", "libx264", "-b:v", vbr,
+           "-preset", "ultrafast",   # CPU/メモリ負荷を最小化（Render 無料プラン対応）
+           "-threads", "1",          # FFmpeg のスレッド数を 1 に制限して RSS を抑制
            "-pass", "1", "-passlogfile", passlog_prefix,
            "-an", "-f", "mp4", null_dev]
     )
@@ -240,6 +260,8 @@ def run_ffmpeg_2pass(input_path: str, output_path: str,
         + ["-i", input_path]
         + vf_opts
         + ["-c:v", "libx264", "-b:v", vbr,
+           "-preset", "ultrafast",   # 1pass と同じプリセットで一貫性を保つ
+           "-threads", "1",
            "-pass", "2", "-passlogfile", passlog_prefix,
            "-c:a", "aac", "-b:a", abr,
            "-movflags", "+faststart",
@@ -548,7 +570,9 @@ def mute_video():
     output_path   = os.path.join(OUTPUT_DIR, f"{job_id}_muted.mp4")
     cmd = [
         "ffmpeg", "-y", "-i", input_path,
-        "-c:v", "libx264", "-crf", "18", "-preset", "fast",
+        "-c:v", "libx264", "-crf", "18",
+        "-preset", "ultrafast",  # Render 無料プラン対応：CPU/メモリ負荷を最小化
+        "-threads", "1",
         "-an", "-movflags", "+faststart",
         output_path,
     ]
