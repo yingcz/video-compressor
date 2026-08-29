@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2798556070349923"
+     crossorigin="anonymous"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>無料オンライン動画ツールキット｜圧縮・音声抽出・GIF変換・無音化</title>
@@ -96,22 +98,9 @@
 
   /* サイドバー広告の個別コンテナ */
   .sidebar-ad-box {
-    background: #f8f9fa;
-    border: 1px dashed #ccc;
+    background: transparent;
     border-radius: 8px;
-    padding: 12px 8px;
-    text-align: center;
-    color: #aaa;
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: .04em;
-    /* 160px 縦長バナー想定。実際のバナーコードに置き換えるときはこのdivを使う */
     min-height: 600px;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center; gap: 8px;
-  }
-  .sidebar-ad-box .ad-size-label {
-    font-size: 10px; color: #bbb;
   }
 
   /* ── header ── */
@@ -405,16 +394,12 @@
      広告コンテナ（共通スタイル）
   ─────────────────────────────────────────── */
   .ad-container {
-    width: 100%; margin-top: 20px; padding: 18px 12px;
-    background: #f8f9fa; border: 1px dashed #ccc; border-radius: 8px;
-    text-align: center; color: #aaa; font-size: 12px; font-weight: 500;
-    letter-spacing: .04em;
+    width: 100%; margin-top: 20px;
+    background: transparent;
+    border-radius: 8px;
   }
-  /* 728px レクタングル（PC向けレクタングル） */
   .ad-container.ad-leaderboard  { max-width: 728px; min-height: 90px; }
-  /* 300×250 レクタングル */
   .ad-container.ad-rectangle    { max-width: 728px; min-height: 60px; }
-  /* フッターバナー */
   .ad-container.ad-footer       { max-width: 100%; min-height: 60px; }
 
   /* ──────────────────────────────────────────
@@ -535,16 +520,8 @@
   <!-- ══ 左サイドバー広告（PC のみ表示） ══ -->
   <aside class="sidebar-ad sidebar-ad-l" aria-label="広告">
     <div class="sidebar-ad-box">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <rect x="3" y="6" width="18" height="12" rx="2" stroke="#ccc" stroke-width="1.5"/>
-        <path d="M8 12H16M12 9V15" stroke="#ccc" stroke-width="1.5" stroke-linecap="round"/>
-      </svg>
-      ※ 広告バナー
-      <span class="ad-size-label">160×600 / 300×600</span>
+      <!-- Google AdSense Ad Space -->
     </div>
-  </aside>
-
-  <!-- ══ メインエリア ══ -->
   <div class="main-area">
 
   <!-- ════════════ ツール本体 ════════════ -->
@@ -731,7 +708,7 @@
 
       <!-- ★ 広告枠①：処理中ローディングの直下（メイン広告） -->
       <div class="ad-container ad-leaderboard" id="ad-processing">
-        ※ ここに広告バナーが入ります（728×90 レクタングル）
+        <!-- Google AdSense Ad Space -->
       </div>
 
       <!-- エラー表示 -->
@@ -768,7 +745,7 @@
 
       <!-- ★ 広告枠②：処理完了画面（結果カード）の直下（成果型バナー） -->
       <div class="ad-container ad-rectangle" id="ad-result">
-        ※ ここに広告バナーが入ります（300×250 または 728×90）
+        <!-- Google AdSense Ad Space -->
       </div>
 
     </div><!-- /.card -->
@@ -966,7 +943,7 @@
 
     <!-- ★ 広告枠③：解説コンテンツの末尾（下部バナー） -->
     <div class="ad-container ad-footer" id="ad-footer">
-      ※ ここに広告バナーが入ります（フッターバナー / 728×90 など）
+      <!-- Google AdSense Ad Space -->
     </div>
 
   </div><!-- /.content-wrap -->
@@ -976,12 +953,7 @@
   <!-- ══ 右サイドバー広告（PC のみ表示） ══ -->
   <aside class="sidebar-ad sidebar-ad-r" aria-label="広告">
     <div class="sidebar-ad-box">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <rect x="3" y="6" width="18" height="12" rx="2" stroke="#ccc" stroke-width="1.5"/>
-        <path d="M8 12H16M12 9V15" stroke="#ccc" stroke-width="1.5" stroke-linecap="round"/>
-      </svg>
-      ※ 広告バナー
-      <span class="ad-size-label">160×600 / 300×600</span>
+      <!-- Google AdSense Ad Space -->
     </div>
   </aside>
 
