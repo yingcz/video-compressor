@@ -40,26 +40,33 @@ ALLOWED_EXTENSIONS = {
     ".3gp", ".ogv",
 }
 
-# SharedArrayBuffer を有効にするための COOP/COEP ヘッダー
-# FFmpeg.wasm v0.12+ を使う場合に必要。
-# 現在は v0.11（SharedArrayBuffer 不要版）を使うため実質スルーだが、
-# 将来の移行を見越して after_request フックで付与する。
-ENABLE_COEP = os.environ.get("ENABLE_COEP", "0") == "1"
-
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 512 * 1024 * 1024  # 512MB
 
+# ---------------------------------------------------------------------------
+# セキュリティヘッダー（FFmpeg.wasm の SharedArrayBuffer に必要）
+# ---------------------------------------------------------------------------
+# SharedArrayBuffer は Cross-Origin-Isolated 環境でのみ使用可能。
+# Cross-Origin-Isolated を有効にするには COOP + COEP の両方が必要。
+#
+# COEP の値は "require-corp" と "credentialless" の2択。
+#   require-corp  … 外部リソースに CORP/CORS ヘッダーが必須 → Google Fonts や
+#                   unpkg などのヘッダーなし CDN がブロックされる。
+#   credentialless … 外部リソースをブロックせず Cross-Origin-Isolated を実現。
+#                   外部 CDN を併用するアプリに適している。
+#                   （Chrome 96+, Firefox 119+, Safari 17+ 対応）
+#
+# Render 無料プランを含め、すべての環境で無条件に付与する。
+
 
 @app.after_request
-def add_security_headers(response):
+def add_coep_coop_headers(response):
     """
-    FFmpeg.wasm v0.12+ が要求する Cross-Origin-Isolated 環境を設定する。
-    ENABLE_COEP=1 の環境変数が設定されている場合のみ有効化。
-    （Render 無料プランではカスタムヘッダーが使えないため通常は無効）
+    Cross-Origin-Isolated 環境を有効化して SharedArrayBuffer を解放する。
+    FFmpeg.wasm はマルチスレッド処理にこの環境を要求する。
     """
-    if ENABLE_COEP:
-        response.headers["Cross-Origin-Opener-Policy"]   = "same-origin"
-        response.headers["Cross-Origin-Embedder-Policy"] = "require-corp"
+    response.headers["Cross-Origin-Opener-Policy"]   = "same-origin"
+    response.headers["Cross-Origin-Embedder-Policy"] = "credentialless"
     return response
 
 

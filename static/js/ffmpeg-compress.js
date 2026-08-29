@@ -180,6 +180,9 @@ function loadScript(src) {
   return new Promise((resolve, reject) => {
     const s = document.createElement('script');
     s.src = src;
+    // COEP: credentialless 環境では crossOrigin を設定することで
+    // ブラウザが匿名リクエストとして扱い、ブロックを回避できる
+    s.crossOrigin = 'anonymous';
     s.onload  = resolve;
     s.onerror = () => reject(new Error(`スクリプトの読み込みに失敗しました: ${src}`));
     document.head.appendChild(s);
