@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>利用規約・FAQ | 動画ツールキット</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin="anonymous">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" crossorigin="anonymous">
+<style>
+  :root {
+    --bg: #F5F6FA; --card: #fff; --border: #E4E7ED;
+    --text: #16181D; --text-sub: #6B7280;
+    --accent: #4F6DF5; --accent-soft: #EEF1FE; --radius: 14px;
+    --shadow: 0 1px 2px rgba(16,20,30,.04), 0 8px 24px rgba(16,20,30,.06);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 32px 16px 60px; }
+  .wrap { max-width: 780px; margin: 0 auto; }
+  .site-header { margin-bottom: 32px; }
+  .site-header a { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text); font-weight: 700; font-size: 15px; }
+  .site-header .logo { width: 36px; height: 36px; border-radius: 9px; background: var(--accent); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 40px 48px; margin-bottom: 32px; }
+  @media (max-width: 640px) { .card { padding: 28px 20px; } }
+  h1 { font-size: 24px; font-weight: 800; letter-spacing: -.02em; margin-bottom: 6px; }
+  .updated { font-size: 13px; color: var(--text-sub); margin-bottom: 32px; }
+  h2 { font-size: 16px; font-weight: 700; margin: 32px 0 10px; padding-bottom: 8px; border-bottom: 2px solid var(--bg); }
+  p, li { font-size: 14px; line-height: 1.8; color: var(--text-sub); }
+  ul { padding-left: 20px; margin-top: 6px; display: flex; flex-direction: column; gap: 4px; }
+  /* FAQ アコーディオン */
+  .faq-list { display: flex; flex-direction: column; gap: 10px; margin-top: 0; }
+  .faq-item { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .faq-q { width: 100%; border: none; background: none; padding: 14px 18px; display: flex; align-items: center; gap: 10px; cursor: pointer; font-family: inherit; font-size: 14px; font-weight: 700; color: var(--text); text-align: left; }
+  .faq-q-icon { width: 22px; height: 22px; border-radius: 6px; background: var(--accent-soft); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; flex-shrink: 0; }
+  .faq-arrow { margin-left: auto; font-size: 16px; color: var(--text-sub); transition: transform .2s; }
+  .faq-item.open .faq-arrow { transform: rotate(180deg); }
+  .faq-a { display: none; padding: 0 18px 14px 50px; font-size: 13.5px; color: var(--text-sub); line-height: 1.7; }
+  .faq-item.open .faq-a { display: block; }
+  a { color: var(--accent); }
+  footer { text-align: center; margin-top: 0; font-size: 12px; color: var(--text-sub); }
+  footer a { color: var(--accent); text-decoration: none; font-weight: 600; margin: 0 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="site-header">
+    <a href="/">
+      <span class="logo">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M4 8L12 3L20 8V16L12 21L4 16V8Z" stroke="white" stroke-width="1.6" stroke-linejoin="round"/>
+          <path d="M9 12L11.2 14.5L15.5 9.5" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+      動画ツールキット
+    </a>
+  </div>
+
+  <!-- 利用規約 -->
+  <div class="card">
+    <h1>利用規約</h1>
+    <p class="updated">最終更新日：<span id="year"></span>年</p>
+
+    <p>本規約は、動画ツールキット（以下「本サービス」）の利用条件を定めるものです。ユーザーは本サービスを利用することで本規約に同意したものとみなします。</p>
+
+    <h2>第1条（サービスの内容）</h2>
+    <p>本サービスは、ブラウザ上で動画の圧縮・音声抽出・GIF変換・無音化を行う無料のオンラインツールです。</p>
+
+    <h2>第2条（禁止事項）</h2>
+    <p>以下の行為を禁止します。</p>
+    <ul>
+      <li>著作権・肖像権等の第三者の権利を侵害するコンテンツの処理</li>
+      <li>違法なコンテンツの処理・配布を目的とした利用</li>
+      <li>本サービスのサーバーに過大な負荷をかける行為</li>
+      <li>本サービスを通じた不正アクセスやシステムへの攻撃</li>
+      <li>その他、公序良俗に反する利用</li>
+    </ul>
+
+    <h2>第3条（免責事項）</h2>
+    <ul>
+      <li>本サービスは「現状のまま」提供されます。処理結果の品質・正確性について保証しません。</li>
+      <li>サービスの停止・中断・データの損失等について、運営者は一切の責任を負いません。</li>
+      <li>ユーザーが本サービスを利用したことにより生じた損害について、運営者は責任を負いません。</li>
+    </ul>
+
+    <h2>第4条（アップロードファイルの取り扱い）</h2>
+    <p>動画圧縮処理はユーザーの端末（ブラウザ）上で完結します。音声抽出・GIF変換・無音化処理においては、ファイルが一時的にサーバーへ送信されますが、処理完了後10分以内に自動削除されます。当サービスはアップロードされたファイルを第三者へ共有・販売・解析等に使用しません。</p>
+
+    <h2>第5条（知的財産権）</h2>
+    <p>本サービスを使用して作成・変換されたファイルの権利は、元のファイルの権利者に帰属します。運営者は変換後のファイルに対して何らの権利も主張しません。</p>
+
+    <h2>第6条（規約の変更）</h2>
+    <p>運営者は予告なく本規約を変更できます。変更後も本サービスを利用し続けた場合、変更後の規約に同意したものとみなします。</p>
+  </div>
+
+  <!-- FAQ -->
+  <div class="card">
+    <h1>よくある質問（FAQ）</h1>
+    <p class="updated" style="margin-bottom:24px;">ツールの安全性・使い方についてよくある質問をまとめました。</p>
+
+    <div class="faq-list">
+      <div class="faq-item">
+        <button type="button" class="faq-q" aria-expanded="false">
+          <span class="faq-q-icon">Q</span>
+          アップロードした動画はサーバーに保存されますか？
+          <span class="faq-arrow">▾</span>
+        </button>
+        <div class="faq-a">
+          <strong>動画圧縮はサーバーを経由しません。</strong>圧縮処理はすべてユーザーのブラウザ上（FFmpeg.wasm）で実行されるため、動画ファイルがインターネット上に送信されることは一切ありません。<br><br>
+          音声抽出・GIF変換・無音化はサーバー側で処理を行いますが、アップロードされたファイルは処理完了後<strong>最大10分以内に自動削除</strong>されます。第三者がファイルにアクセスすることはできません。
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button type="button" class="faq-q" aria-expanded="false">
+          <span class="faq-q-icon">Q</span>
+          無料で利用できますか？登録は必要ですか？
+          <span class="faq-arrow">▾</span>
+        </button>
+        <div class="faq-a">
+          すべての機能を<strong>完全無料</strong>でご利用いただけます。アカウント登録・メールアドレスの入力・クレジットカードの登録は不要です。
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button type="button" class="faq-q" aria-expanded="false">
+          <span class="faq-q-icon">Q</span>
+          対応している動画フォーマットは何ですか？
+          <span class="faq-arrow">▾</span>
+        </button>
+        <div class="faq-a">
+          入力形式として MP4 / MOV / AVI / MKV / WebM / WMV / FLV / M4V / TS / MTS / M2TS / 3GP / OGV に対応しています。出力は動画圧縮・無音化が MP4、音声抽出が MP3、GIF変換が GIF 形式です。
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button type="button" class="faq-q" aria-expanded="false">
+          <span class="faq-q-icon">Q</span>
+          圧縮後の画質が悪くなりましたが、改善できますか？
+          <span class="faq-arrow">▾</span>
+        </button>
+        <div class="faq-a">
+          「画質モード」から「⚖️ バランス」または「🎬 画質優先」を選択してください。また、目標サイズを大きくすることでビットレートが上がり画質が向上します。目標サイズが極端に小さい場合（5MB以下など）、「画質優先」モードでは解像度を自動的に下げてピクセルあたりのビットレートを確保します。
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button type="button" class="faq-q" aria-expanded="false">
+          <span class="faq-q-icon">Q</span>
+          スマートフォンから利用できますか？
+          <span class="faq-arrow">▾</span>
+        </button>
+        <div class="faq-a">
+          UIはスマートフォン対応のレスポンシブデザインです。ただし、FFmpeg.wasmを使う動画圧縮処理はブラウザのメモリを使用するため、大きなファイルの処理では端末スペックに応じて時間がかかる場合があります。
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button type="button" class="faq-q" aria-expanded="false">
+          <span class="faq-q-icon">Q</span>
+          著作権のある動画を処理しても問題ありませんか？
+          <span class="faq-arrow">▾</span>
+        </button>
+        <div class="faq-a">
+          自分が権利を持つ動画、または著作権者から許諾を得た動画のみをご利用ください。著作権法に違反するコンテンツの処理・配布は本サービスの利用規約で禁止しており、法律により処罰される場合があります。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <a href="/">ホーム</a>
+    <a href="/privacy">プライバシーポリシー</a>
+    <a href="/contact">お問い合わせ</a>
+    <br><br>&copy; <span id="year2"></span> 動画ツールキット
+  </footer>
+</div>
+<script>
+  const y = new Date().getFullYear();
+  document.getElementById('year').textContent = y;
+  document.getElementById('year2').textContent = y;
+  // FAQ アコーディオン
+  document.querySelectorAll('.faq-q').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const item = btn.closest('.faq-item');
+      const open = item.classList.contains('open');
+      document.querySelectorAll('.faq-item.open').forEach(el => {
+        el.classList.remove('open');
+        el.querySelector('.faq-q').setAttribute('aria-expanded', 'false');
+      });
+      if (!open) { item.classList.add('open'); btn.setAttribute('aria-expanded', 'true'); }
+    });
+  });
+</script>
+</body>
+</html>

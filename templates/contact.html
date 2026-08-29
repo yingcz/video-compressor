@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>お問い合わせ | 動画ツールキット</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin="anonymous">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" crossorigin="anonymous">
+<style>
+  :root {
+    --bg: #F5F6FA; --card: #fff; --border: #E4E7ED;
+    --text: #16181D; --text-sub: #6B7280;
+    --accent: #4F6DF5; --accent-hv: #3D57DE; --accent-soft: #EEF1FE;
+    --success: #16A34A; --success-soft: #EAFBF1;
+    --error: #E0453C; --error-soft: #FDECEB;
+    --radius: 14px;
+    --shadow: 0 1px 2px rgba(16,20,30,.04), 0 8px 24px rgba(16,20,30,.06);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 32px 16px 60px; }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  .site-header { margin-bottom: 32px; }
+  .site-header a { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text); font-weight: 700; font-size: 15px; }
+  .site-header .logo { width: 36px; height: 36px; border-radius: 9px; background: var(--accent); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 40px 48px; }
+  @media (max-width: 640px) { .card { padding: 28px 20px; } }
+  h1 { font-size: 24px; font-weight: 800; letter-spacing: -.02em; margin-bottom: 8px; }
+  .lead { font-size: 14px; color: var(--text-sub); margin-bottom: 32px; line-height: 1.7; }
+  .form-group { margin-bottom: 20px; }
+  label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+  label .req { color: var(--error); margin-left: 4px; }
+  input[type="text"], input[type="email"], select, textarea {
+    width: 100%; border: 1.5px solid var(--border); border-radius: 10px;
+    padding: 11px 14px; font-family: inherit; font-size: 14px; color: var(--text);
+    background: var(--bg); outline: none; transition: border-color .15s;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); background: #fff; }
+  textarea { min-height: 140px; resize: vertical; }
+  .hint { font-size: 12px; color: var(--text-sub); margin-top: 5px; }
+  .submit-btn {
+    width: 100%; padding: 14px; border: none; border-radius: 11px;
+    background: var(--accent); color: #fff; font-family: inherit;
+    font-size: 15px; font-weight: 700; cursor: pointer; transition: background .12s;
+    margin-top: 8px;
+  }
+  .submit-btn:hover { background: var(--accent-hv); }
+  .submit-btn:disabled { background: var(--border); color: var(--text-sub); cursor: not-allowed; }
+  .alert { border-radius: 10px; padding: 14px 16px; font-size: 14px; margin-top: 20px; display: none; }
+  .alert.success { background: var(--success-soft); color: var(--success); display: block; }
+  .alert.error   { background: var(--error-soft);   color: var(--error);   display: block; }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+  .alt-contact { background: var(--bg); border-radius: 10px; padding: 18px; }
+  .alt-contact p { font-size: 13.5px; color: var(--text-sub); line-height: 1.7; }
+  footer { text-align: center; margin-top: 32px; font-size: 12px; color: var(--text-sub); }
+  footer a { color: var(--accent); text-decoration: none; font-weight: 600; margin: 0 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="site-header">
+    <a href="/">
+      <span class="logo">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M4 8L12 3L20 8V16L12 21L4 16V8Z" stroke="white" stroke-width="1.6" stroke-linejoin="round"/>
+          <path d="M9 12L11.2 14.5L15.5 9.5" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+      動画ツールキット
+    </a>
+  </div>
+
+  <div class="card">
+    <h1>お問い合わせ</h1>
+    <p class="lead">
+      ご質問・バグ報告・機能リクエスト・その他ご連絡は以下のフォームからお送りください。<br>
+      通常2〜5営業日以内にご回答いたします。
+    </p>
+
+    <form id="contactForm" novalidate>
+      <div class="form-group">
+        <label for="name">お名前<span class="req">*</span></label>
+        <input type="text" id="name" name="name" placeholder="山田 太郎" required autocomplete="name">
+      </div>
+      <div class="form-group">
+        <label for="email">メールアドレス<span class="req">*</span></label>
+        <input type="email" id="email" name="email" placeholder="your@email.com" required autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label for="category">お問い合わせ種別</label>
+        <select id="category" name="category">
+          <option value="">選択してください</option>
+          <option value="bug">バグ・不具合の報告</option>
+          <option value="feature">機能リクエスト</option>
+          <option value="usage">使い方について</option>
+          <option value="privacy">プライバシー・データに関するご質問</option>
+          <option value="other">その他</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="message">お問い合わせ内容<span class="req">*</span></label>
+        <textarea id="message" name="message" placeholder="お問い合わせ内容をできるだけ詳しくご記入ください。" required></textarea>
+        <p class="hint">バグ報告の場合は、使用ブラウザ・OS・再現手順もご記入いただけると助かります。</p>
+      </div>
+
+      <button type="submit" class="submit-btn" id="submitBtn">送信する</button>
+    </form>
+
+    <div class="alert" id="formAlert"></div>
+
+    <hr class="divider">
+
+    <div class="alt-contact">
+      <p>
+        <strong>※ フォームを使わずにご連絡いただく場合：</strong><br>
+        バグ報告や機能リクエストは <a href="https://github.com/" target="_blank" rel="noopener">GitHub の Issues</a>（リポジトリ公開後）でも受け付ける予定です。
+      </p>
+    </div>
+  </div>
+
+  <footer>
+    <a href="/">ホーム</a>
+    <a href="/privacy">プライバシーポリシー</a>
+    <a href="/terms">利用規約</a>
+    <br><br>&copy; <span id="year"></span> 動画ツールキット
+  </footer>
+</div>
+
+<script>
+document.getElementById('year').textContent = new Date().getFullYear();
+
+/**
+ * お問い合わせフォームの送信ハンドラ。
+ *
+ * 実際のメール送信機能を実装する場合は、以下のいずれかを選択してください:
+ *   A) Formspree (https://formspree.io) — form の action を設定するだけで無料利用可
+ *   B) Netlify Forms — Netlify デプロイ時に自動対応
+ *   C) app.py に /contact/submit エンドポイントを追加して smtplib でメール送信
+ *
+ * 現在はデモ動作（バリデーションのみ）として実装しています。
+ * Formspree を使う場合は form タグに action="https://formspree.io/f/YOUR_ID" を追加してください。
+ */
+document.getElementById('contactForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn   = document.getElementById('submitBtn');
+  const alert = document.getElementById('formAlert');
+  alert.className = 'alert';
+  alert.textContent = '';
+
+  const name    = document.getElementById('name').value.trim();
+  const email   = document.getElementById('email').value.trim();
+  const message = document.getElementById('message').value.trim();
+
+  if (!name || !email || !message) {
+    alert.className = 'alert error';
+    alert.textContent = '※ お名前・メールアドレス・お問い合わせ内容は必須項目です。';
+    return;
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    alert.className = 'alert error';
+    alert.textContent = '※ 有効なメールアドレスを入力してください。';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = '送信中...';
+
+  // ── ここに実際の送信処理を実装してください ──
+  // 例: Formspree を使う場合
+  // const res = await fetch('https://formspree.io/f/YOUR_ID', {
+  //   method: 'POST',
+  //   headers: { 'Accept': 'application/json' },
+  //   body: new FormData(e.target),
+  // });
+  // if (res.ok) { /* 成功 */ } else { /* エラー */ }
+
+  // デモ: 1秒後に成功メッセージを表示
+  await new Promise(r => setTimeout(r, 1000));
+  alert.className = 'alert success';
+  alert.textContent = 'お問い合わせを受け付けました。ご返信まで2〜5営業日お待ちください。';
+  document.getElementById('contactForm').reset();
+  btn.disabled = false;
+  btn.textContent = '送信する';
+});
+</script>
+</body>
+</html>
