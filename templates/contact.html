@@ -164,20 +164,21 @@ document.getElementById('contactForm').addEventListener('submit', async (e) => {
   btn.disabled = true;
   btn.textContent = '送信中...';
 
-  // ── ここに実際の送信処理を実装してください ──
-  // 例: Formspree を使う場合
-  // const res = await fetch('https://formspree.io/f/YOUR_ID', {
-  //   method: 'POST',
-  //   headers: { 'Accept': 'application/json' },
-  //   body: new FormData(e.target),
-  // });
-  // if (res.ok) { /* 成功 */ } else { /* エラー */ }
-
-  // デモ: 1秒後に成功メッセージを表示
-  await new Promise(r => setTimeout(r, 1000));
-  alert.className = 'alert success';
-  alert.textContent = 'お問い合わせを受け付けました。ご返信まで2〜5営業日お待ちください。';
-  document.getElementById('contactForm').reset();
+  // Formspree でメールを受け取る
+  const res = await fetch('https://formspree.io/f/mnpqnbqa', {
+    method: 'POST',
+    headers: { 'Accept': 'application/json' },
+    body: new FormData(e.target),
+  });
+  if (res.ok) {
+    alert.className = 'alert success';
+    alert.textContent = 'お問い合わせを受け付けました。ご返信まで2〜5営業日お待ちください。';
+    document.getElementById('contactForm').reset();
+  } else {
+    const data = await res.json().catch(() => ({}));
+    alert.className = 'alert error';
+    alert.textContent = data.error || '送信に失敗しました。しばらく経ってから再度お試しください。';
+  }
   btn.disabled = false;
   btn.textContent = '送信する';
 });
