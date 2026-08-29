@@ -149,10 +149,28 @@ _purge_temp_dirs()
 
 
 def run_cmd(cmd, error_label):
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    if result.returncode != 0:
-        raise RuntimeError(f"{error_label}に失敗しました:\n{result.stderr[-2000:]}")
-    return result
+    """
+    FFmpeg コマンドを実行する。
+    subprocess.run(capture_output=True) は gunicorn の SIGALRM と干渉して
+    selectors.select() 内で SystemExit が発生することがある。
+    Popen + communicate() に変更することで gunicorn のシグナルハンドラーから
+    独立した形でプロセス完了を待機し、この問題を回避する。
+    """
+    proc = subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    stdout_bytes, stderr_bytes = proc.communicate()
+    if proc.returncode != 0:
+        stderr_text = stderr_bytes.decode("utf-8", errors="replace")[-2000:]
+        raise RuntimeError(f"{error_label}に失敗しました:\n{stderr_text}")
+    # 呼び出し元が result.stderr を参照しないため戻り値は簡易オブジェクトで代替
+    class _Result:
+        returncode = proc.returncode
+        stderr = stderr_bytes.decode("utf-8", errors="replace")
+        stdout = stdout_bytes.decode("utf-8", errors="replace")
+    return _Result()
 
 
 def parse_trim_params(form):
@@ -200,10 +218,11 @@ def get_duration_seconds(input_path: str) -> float:
         "-of", "json",
         input_path,
     ]
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    if result.returncode != 0:
-        raise RuntimeError(f"動画情報の取得に失敗しました: {result.stderr}")
-    data = json.loads(result.stdout)
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout_bytes, stderr_bytes = proc.communicate()
+    if proc.returncode != 0:
+        raise RuntimeError(f"動画情報の取得に失敗しました: {stderr_bytes.decode('utf-8', errors='replace')}")
+    data = json.loads(stdout_bytes.decode("utf-8", errors="replace"))
     return float(data["format"]["duration"])
 
 

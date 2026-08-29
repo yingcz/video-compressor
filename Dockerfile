@@ -23,15 +23,24 @@ RUN mkdir -p uploads outputs
 # ── ポート公開 ──────────────────────────────────────────────
 EXPOSE 5000
 
-# ── 起動コマンド（Render 無料プラン 512MB 向け最小構成）────
-#   --workers 1  : プロセス数を最小化（FFmpeg はすでにマルチスレッドで動く）
-#   --threads 1  : スレッド数も 1 に抑えてメモリを節約
-#   --timeout 120: 無料プランのタイムアウト上限に合わせる
-#   --worker-class sync: デフォルトの同期ワーカーで最も軽量
+# ── 起動コマンド ────────────────────────────────────────────
+#
+# [なぜ gevent ワーカーが必要か]
+# sync ワーカーは gunicorn が SIGALRM でタイムアウトを実装するが、
+# subprocess.run() が I/O 待ち中に SIGALRM を受け取ると
+# selectors.select() の中で SystemExit が投げられ処理が中断される。
+# gevent ワーカーは SIGALRM を使わず greenlet の協調スケジューリングで
+# タイムアウト管理するため、FFmpeg などの長時間 subprocess と相性が良い。
+#
+# [各オプションの意図]
+#   --workers 1    : Render 無料プラン 512MB に合わせてプロセス数を最小化
+#   --worker-class gevent : 上記理由で gevent を使用
+#   --worker-connections 4 : gevent の同時接続数（軽量に制限）
+#   --timeout 300  : FFmpeg 2pass エンコードは数分かかるため余裕を持たせる
 CMD gunicorn app:app \
       --bind 0.0.0.0:${PORT:-5000} \
       --workers 1 \
-      --threads 1 \
-      --timeout 120 \
-      --worker-class sync \
+      --worker-class gevent \
+      --worker-connections 4 \
+      --timeout 300 \
       --log-level info

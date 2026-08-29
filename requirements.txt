@@ -3,3 +3,7 @@ Flask==3.0.3
 
 # 本番 WSGI サーバー
 gunicorn==22.0.0
+
+# gevent ワーカー：FFmpeg のような長時間ブロッキング処理でも
+# gunicorn の WORKER TIMEOUT を回避するために必要
+gevent==24.2.1
